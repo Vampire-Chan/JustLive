@@ -20,7 +20,14 @@ UVFSManager* UVFSManager::Get(const UObject* WorldContextObject)
 void UVFSManager::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
-    UE_LOG(LogTemp, Log, TEXT("VFS Manager Initialized"));
+    
+    // Register Default Mount Points
+    Mount(TEXT("@content"), FPaths::ProjectContentDir());
+    Mount(TEXT("@data"), FPaths::ProjectDir() / TEXT("Data"));
+    Mount(TEXT("@scripts"), FPaths::ProjectDir() / TEXT("Scripts"));
+    Mount(TEXT("@mods"), FPaths::ProjectDir() / TEXT("Mods"));
+    
+    UE_LOG(LogTemp, Log, TEXT("VFS Manager Initialized. Default mount points registered."));
 }
 
 void UVFSManager::Deinitialize()
