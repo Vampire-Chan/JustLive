@@ -42,6 +42,7 @@ APed::APed()
 	InventoryComp = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComp"));
 	AttributesComp = CreateDefaultSubobject<UAttributesComponent>(TEXT("AttributesComp"));
 	AnimationComp = CreateDefaultSubobject<UAnimationComponent>(TEXT("AnimationComp"));
+	AnimManager = CreateDefaultSubobject<UAnimationManager>(TEXT("AnimManager"));
 	SpeechComp = CreateDefaultSubobject<USpeechComponent>(TEXT("SpeechComp"));
 
 	// Debug Text
@@ -74,12 +75,6 @@ void APed::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	// Get AnimationManager from GameInstanceSubsystem
-	if (UGameInstance* GI = GetGameInstance())
-	{
-		AnimManager = GI->GetSubsystem<UAnimationManager>();
-	}
-
 	// Create Dynamic Material for Skeletal Mesh if a base material is present
 	if (GetMesh() && GetMesh()->GetNumMaterials() > 0)
 	{

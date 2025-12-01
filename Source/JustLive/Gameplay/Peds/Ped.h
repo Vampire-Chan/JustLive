@@ -79,7 +79,7 @@ public:
 	UAnimationComponent* AnimationComp;
 
 	/** Main Animation Manager (Pure C++ System) */
-	UPROPERTY(BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UAnimationManager* AnimManager;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
