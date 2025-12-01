@@ -1,0 +1,6 @@
+// Core API functions
+void Print(string message);
+void LogWarning(string message);
+void LogError(string message);
+int RandInt(int min, int max);
+float RandFloat(float min, float max);

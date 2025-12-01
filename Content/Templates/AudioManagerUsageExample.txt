@@ -1,0 +1,76 @@
+// Example usage of the enhanced Audio Manager
+// This would be included in a game class like a PlayerController or GameMode
+
+void SomeGameClass::PlayExampleSounds()
+{
+    // Get the audio manager instance
+    UAudioManager* AudioManager = GetGameInstance()->GetSubsystem<UAudioManager>();
+    
+    if (AudioManager)
+    {
+        // Play a UI sound
+        TSoftObjectPtr<USoundWave> UISoundAsset = TSoftObjectPtr<USoundWave>(FSoftObjectPath(TEXT("/Game/Audio/UI/ButtonClick")));
+        FAudioID UIAudioID = AudioManager->PlayUI(UISoundAsset, 0.8f, 1.0f);
+        
+        // Play an SFX at a specific location
+        TSoftObjectPtr<USoundWave> SFXAsset = TSoftObjectPtr<USoundWave>(FSoftObjectPath(TEXT("/Game/Audio/SFX/Explosion")));
+        FAudioID SFXAudioID = AudioManager->PlaySFX(SFXAsset, FVector(100.0f, 100.0f, 100.0f), 1.2f, 0.9f);
+        
+        // Play music (2D)
+        TSoftObjectPtr<USoundWave> MusicAsset = TSoftObjectPtr<USoundWave>(FSoftObjectPath(TEXT("/Game/Audio/Music/MainTheme")));
+        FAudioID MusicID = AudioManager->PlayMusic(MusicAsset, true, 0.7f, 1.0f);
+        
+        // Later, you can control these sounds using their IDs:
+        
+        // Fade out the music over 3 seconds
+        AudioManager->SetVolumeWithFade(MusicID, 0.0f, 3.0f);
+        
+        // Change the pitch of the SFX
+        AudioManager->SetPitch(SFXAudioID, 1.2f);
+        
+        // Update multiple parameters on the UI sound
+        TMap<FName, float> NewParams;
+        NewParams.Add("Volume", 0.5f);
+        NewParams.Add("Pitch", 1.1f);
+        AudioManager->SetParameters(UIAudioID, NewParams);
+        
+        // Stop the SFX after changing its parameters
+        FTimerHandle TimerHandle;
+        GetWorld()->GetTimerManager().SetTimer(TimerHandle, [AudioManager, SFXAudioID]() {
+            AudioManager->Stop(SFXAudioID);
+        }, 5.0f, false); // Stop after 5 seconds
+    }
+}
+
+// Example of creating a custom MetaSound parameter set
+void SomeGameClass::PlayCustomAudio()
+{
+    UAudioManager* AudioManager = GetGameInstance()->GetSubsystem<UAudioManager>();
+    
+    if (AudioManager)
+    {
+        // Load a sound asset
+        TSoftObjectPtr<USoundWave> CustomSound = TSoftObjectPtr<USoundWave>(FSoftObjectPath(TEXT("/Game/Audio/SFX/CustomSound")));
+        
+        // Create custom MetaSound parameters
+        FMetaSoundParams CustomParams;
+        CustomParams.MetaSoundSource = AudioManager->MetaSoundTemplateAssets.SFXTemplate; // Use SFX template
+        CustomParams.Category = EAudioCategory::SFX;
+        CustomParams.Volume = 1.5f;
+        CustomParams.Pitch = 0.8f;
+        CustomParams.bIsLooping = false;
+        CustomParams.bUseWorldSpeedPitch = false;
+        CustomParams.ParameterValues.Add("LowPassFreq", 2000.0f);
+        CustomParams.ParameterValues.Add("ReverbSend", 0.3f);
+        
+        // Play with custom parameters
+        FAudioID CustomAudioID = AudioManager->PlayMetaSound(
+            CustomParams.MetaSoundSource.Get(), 
+            CustomParams, 
+            FVector(200.0f, 200.0f, 100.0f)
+        );
+        
+        // Later, update specific parameters
+        AudioManager->SetParameter(CustomAudioID, "LowPassFreq", 500.0f);
+    }
+}

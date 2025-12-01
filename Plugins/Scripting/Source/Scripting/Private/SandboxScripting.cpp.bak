@@ -1,0 +1,176 @@
+// Copyright Vampire Game Project. All Rights Reserved.
+// Custom scripting system for secure modding support.
+
+#include "Scripting.h"
+#include "ScriptLexer.h"
+#include "ScriptParser.h"
+#include "ScriptCompiler.h"
+#include "ScriptVM.h"
+#include "ScriptLogger.h"
+#include "ScriptToken.h"
+#include "ScriptNativeAPI.h"
+#include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
+#include "HAL/FileManager.h"
+
+#define LOCTEXT_NAMESPACE "FScriptingModule"
+
+void FScriptingModule::StartupModule()
+{
+    // Initialize custom script logger
+    FScriptLogger::Initialize();
+    
+    SCRIPT_LOG(TEXT("=== Scripting Module Started ==="));
+    
+    // Load and execute all scripts from Scripts/ folder
+    FString ScriptsPath = FPaths::ProjectDir() / TEXT("Scripts");
+    SCRIPT_LOG(FString::Printf(TEXT("Loading scripts from: %s"), *ScriptsPath));
+    
+    // Find all .sbs files
+    TArray<FString> ScriptFiles;
+    IFileManager::Get().FindFiles(ScriptFiles, *(ScriptsPath / TEXT("*.sbs")), true, false);
+    
+    SCRIPT_LOG(FString::Printf(TEXT("Found %d script files"), ScriptFiles.Num()));
+    
+    // Load and execute each script
+    for (const FString& ScriptFile : ScriptFiles)
+    {
+        FString FullPath = ScriptsPath / ScriptFile;
+        FString TestScript;
+        
+        if (!FFileHelper::LoadFileToString(TestScript, *FullPath))
+        {
+            SCRIPT_LOG_ERROR(FString::Printf(TEXT("Failed to load script: %s"), *ScriptFile));
+            continue;
+        }
+        
+        SCRIPT_LOG(TEXT(""));
+        SCRIPT_LOG(TEXT("================================================================================"));
+        SCRIPT_LOG(FString::Printf(TEXT("EXECUTING SCRIPT: %s"), *ScriptFile));
+        SCRIPT_LOG(TEXT("================================================================================"));
+    
+    // Step 1: Lexer
+    SCRIPT_LOG(TEXT("=== LEXER PHASE ==="));
+    FScriptLexer Lexer(TestScript);
+    TArray<FScriptToken> Tokens = Lexer.ScanTokens();
+    
+    if (Lexer.HasErrors())
+    {
+        SCRIPT_LOG_ERROR(TEXT("Lexer encountered errors:"));
+        for (const FString& Error : Lexer.GetErrors())
+        {
+            SCRIPT_LOG_ERROR(FString::Printf(TEXT("  %s"), *Error));
+        }
+        return;
+    }
+    
+    SCRIPT_LOG(FString::Printf(TEXT("Lexer success! Scanned %d tokens"), Tokens.Num()));
+        
+        // Step 1: Lexer
+        SCRIPT_LOG(TEXT("=== LEXER PHASE ==="));
+        FScriptLexer Lexer(TestScript);
+        TArray<FScriptToken> Tokens = Lexer.ScanTokens();
+        
+        if (Lexer.HasErrors())
+        {
+            SCRIPT_LOG_ERROR(TEXT("Lexer encountered errors:"));
+            for (const FString& Error : Lexer.GetErrors())
+            {
+                SCRIPT_LOG_ERROR(FString::Printf(TEXT("  %s"), *Error));
+            }
+            continue;
+        }
+        
+        SCRIPT_LOG(FString::Printf(TEXT("Lexer success! Scanned %d tokens"), Tokens.Num()));
+        
+        // Step 2: Parser
+        SCRIPT_LOG(TEXT("=== PARSER PHASE ==="));
+        FScriptParser Parser(Tokens);
+        TSharedPtr<FScriptProgram> Program = Parser.Parse();
+        
+        if (Parser.HasErrors())
+        {
+            SCRIPT_LOG_ERROR(TEXT("Parser encountered errors:"));
+            for (const FString& Error : Parser.GetErrors())
+            {
+                SCRIPT_LOG_ERROR(FString::Printf(TEXT("  %s"), *Error));
+            }
+            continue;
+        }
+        
+        if (!Program.IsValid() || !Program->IsValid())
+        {
+            SCRIPT_LOG_ERROR(TEXT("Parser produced invalid AST"));
+            continue;
+        }
+        
+        SCRIPT_LOG(FString::Printf(TEXT("Parsed %d functions and %d statements"),
+            Program->Functions.Num(), Program->Statements.Num()));
+        
+        // Step 3: Compile to bytecode
+        SCRIPT_LOG(TEXT("=== COMPILER PHASE ==="));
+        FScriptCompiler Compiler;
+        TSharedPtr<FBytecodeChunk> Bytecode = Compiler.Compile(Program);
+        
+        if (!Bytecode.IsValid() || Compiler.HasErrors())
+        {
+            SCRIPT_LOG_ERROR(TEXT("Compiler encountered errors:"));
+            for (const FString& Error : Compiler.GetErrors())
+            {
+                SCRIPT_LOG_ERROR(FString::Printf(TEXT("  %s"), *Error));
+            }
+            continue;
+        }
+        
+        SCRIPT_LOG(FString::Printf(TEXT("Generated %d bytes of bytecode with %d constants"),
+            Bytecode->Code.Num(), Bytecode->Constants.Num()));
+        
+        // Step 4: Execute bytecode with VM
+        SCRIPT_LOG(TEXT("=== VM EXECUTION ==="));
+        FScriptVM VM;
+        
+        // Register all native API functions (Log, Print, UI_*, Audio_*)
+        FScriptNativeAPI::RegisterNativeFunctions(&VM);
+        
+        // First execute any top-level code
+        bool bSuccess = VM.Execute(Bytecode);
+        
+        if (!bSuccess || VM.HasErrors())
+        {
+            SCRIPT_LOG_ERROR(TEXT("VM execution failed:"));
+            for (const FString& Error : VM.GetErrors())
+            {
+                SCRIPT_LOG_ERROR(FString::Printf(TEXT("  %s"), *Error));
+            }
+            continue;
+        }
+        
+        // Then call Main() function if it exists
+        if (VM.CallMainIfExists())
+        {
+            SCRIPT_LOG(TEXT("Main() function executed successfully!"));
+        }
+        else
+        {
+            SCRIPT_LOG(TEXT("No Main() function found - top-level execution completed"));
+        }
+        
+        SCRIPT_LOG(TEXT("================================================================================"));
+        SCRIPT_LOG(FString::Printf(TEXT("SCRIPT COMPLETED: %s"), *ScriptFile));
+        SCRIPT_LOG(TEXT("================================================================================"));
+    }
+    
+    SCRIPT_LOG(TEXT(""));
+    SCRIPT_LOG(TEXT("=== ALL SCRIPTS COMPLETED ==="));
+}
+
+void FScriptingModule::ShutdownModule()
+{
+    SCRIPT_LOG(TEXT("Scripting Module Shutdown"));
+    FScriptLogger::Shutdown();
+}
+
+#undef LOCTEXT_NAMESPACE
+
+IMPLEMENT_MODULE(FScriptingModule, Scripting)
+

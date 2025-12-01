@@ -1,0 +1,30 @@
+// Test break and continue in loops
+
+int Main() {
+    // Test break
+    int i = 0;
+    while (i < 10) {
+        if (i == 5) {
+            break;
+        }
+        i = i + 1;
+    }
+    
+    // Test continue
+    int j = 0;
+    while (j < 5) {
+        j = j + 1;
+        if (j == 3) {
+            continue;
+        }
+    }
+    
+    // Test for loop with break
+    for (int k = 0; k < 10; k = k + 1) {
+        if (k == 7) {
+            break;
+        }
+    }
+    
+    return 0;
+}

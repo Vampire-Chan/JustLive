@@ -1,0 +1,17 @@
+// Simple test for function declarations and Main() entry point
+
+int Add(int a, int b) {
+    int result = a + b;
+    return result;
+}
+
+int Subtract(int x, int y) {
+    return x - y;
+}
+
+int Main() {
+    int sum = Add(10, 20);
+    int diff = Subtract(50, 15);
+    
+    return 0;
+}

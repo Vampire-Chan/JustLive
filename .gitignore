@@ -1,0 +1,39 @@
+# Unreal Engine
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Build/
+.vs/
+*.VC.db
+*.opensdf
+*.opendb
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+*.log
+*.obj
+*.pdb
+*.pch
+*.ilk
+*.aps
+*.tlog
+*.target
+
+# Plugins
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+
+# Tools
+Tools/*/Bin/
+Tools/*/Intermediate/
+Tools/*/.vs/
+Tools/*/*.sln
+Tools/*/*.suo
+Tools/*/*.vcxproj.user
+
+# OS
+.DS_Store
+Thumbs.db

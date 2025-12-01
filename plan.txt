@@ -1,0 +1,232 @@
+# Just Live - Project Master Plan (Expanded)
+**Vision:** A highly moddable, C++ powered open-world sandbox game in Unreal Engine 5, inspired by the freedom of GMod and the open-world mechanics of GTA.
+**Core Philosophy:** Strict C++ implementation for performance and control. Data-driven design (XML/JSON) to allow extensive modding without recompilation.
+
+---
+
+## 1. Core Architecture & Managers
+*Goal: Build a robust foundation where systems are decoupled and data-driven.*
+
+### 1.1. Game Lifecycle & Instance
+- **Custom GameInstance (`UCoreGameInstance`):** The central hub. Initializes managers in a specific dependency order.
+  - **Initialization Phase:** `Init()` -> `VFSManager` -> `DataManager` -> `EventManager` -> `PoolManager`.
+  - **Shutdown Phase:** Reverse order cleanup to prevent dangling pointers.
+- **System Registry:** A lightweight Service Locator pattern (`GetManager<T>()`) within GameInstance to avoid tight coupling and excessive singleton usage.
+
+### 1.2. Data Manager (The Backbone)
+- **Virtual File System (VFS):**
+  - **Abstraction:** `IVirtualFileSystem` interface.
+  - **Dev Mode:** Reads directly from `D:\UnrealProjs\JustLive\Data`.
+  - **Release Mode:** Mounts `.pak` or `.zip` archives into the virtual tree.
+  - **Hot-Reloading:** Uses `FDirectoryWatcher` to detect file changes (XML/Textures) and triggers `OnAssetChanged` events.
+- **XML/JSON Parsers:** 
+  - **Technology:** `FXmlFile` (or `FastXML` for speed) for definitions; `FJsonObject` for save data.
+  - **Schema Validation:** Custom validator to ensure modder XMLs contain required attributes before loading, preventing runtime crashes.
+  - **Serialization:** Template-based converters (`XmlToStruct<T>`) to map XML attributes directly to C++ USTRUCTS.
+
+### 1.3. Pool Manager
+- **Actor Pooling (`APooledActor`):**
+  - **Mechanism:** Actors are hidden (`SetActorHiddenInGame(true)`, collision disabled) and stored in `TQueue<AActor*>`.
+  - **Lifecycle:** `Rent()` teleports actor to location and calls `OnRent()`; `Return()` resets state and hides.
+  - **Categories:** `ProjectilePool`, `TrafficPool`, `PedestrianPool`.
+- **Component Pooling:** Dedicated pools for `UAudioComponent` and `UNiagaraComponent` to minimize allocation overhead.
+
+### 1.4. Event Manager
+- **Global Event Bus:**
+  - **Structure:** `TMap<FGameplayTag, FOnGameEvent>` allowing type-safe, tag-based event subscriptions.
+  - **Payload:** `FVariant` or custom `FEventData` struct to pass arbitrary data (e.g., killer ID, weapon used) without casting.
+- **Mod Hooks:** Exposed to Blueprint/Lua (if added later) to allow mod logic to intercept events.
+
+---
+
+## 2. Audio System
+*Goal: Immersive, layered, and dynamic audio environment.*
+
+### 2.1. Audio Architecture
+- **AudioManager (`UAudioManager`):**
+  - **Concurrency:** Manages `USoundConcurrency` classes to prevent audio clutter.
+  - **Ducking:** Uses `USoundMix` to dynamically lower "Ambient" and "Music" classes when "Dialogue" or "Combat" classes are active.
+- **Sub-Players:**
+  - **MusicPlayer:** State machine for music (Explore -> Suspense -> Combat). Handles cross-fading logic.
+  - **SpeechPlayer:** Priority queue system. Higher priority lines (Plot) interrupt lower priority (Ambient chatter).
+  - **EnginePlayer:**
+    - **Technique:** RPM-based pitch shifting of loop samples vs. Granular Synthesis (MetaSounds).
+    - **Inputs:** Throttle, RPM, Load, Gear.
+
+### 2.2. Advanced Features
+- **Occlusion/Obstruction:**
+  - **Implementation:** Async Raycasts from listener to source. Applies Low-Pass Filter (LPF) and volume attenuation based on hit material.
+- **Audio Zones:**
+  - **Reverb:** `AAudioVolume` triggers `USoundSubmix` send adjustments (e.g., entering a tunnel sends 100% to Reverb Submix).
+
+---
+
+## 3. Visuals & Rendering
+*Goal: Dynamic world with fine-grained control.*
+
+### 3.1. World Cycle Manager
+- **Time of Day:**
+  - **Components:** Control `ADirectionalLight` (Sun), `ASkyLight`, `ASkyAtmosphere`, and `AVolumetricCloud`.
+  - **Curve Data:** `UCurveFloat` for SunPitch, SunIntensity, FogDensity over 0.0-24.0 timeline.
+- **Weather System:**
+  - **Global Material Collection:** Sets `MPC_Global` parameters (`RainIntensity`, `Wetness`).
+  - **Post Process:** Blends PostProcessVolumes for rain distortion/fog.
+  - **Puddles:** Dynamic texture mask generation based on terrain flatness and noise.
+
+### 3.2. Texture & Decal Managers
+- **Runtime Texture Loading:** 
+  - **ImageWrapperModule:** Decodes `.png`/`.jpg` raw bytes into `UTexture2D` at runtime.
+  - **Caching:** LRU (Least Recently Used) cache to unload unused textures from VRAM.
+- **Decal Manager:**
+  - **Optimized Rendering:** Uses `UDecalComponent` for static marks.
+  - **Fade System:** Time-sliced updater to slowly fade Alpha of oldest decals to prevent overdraw.
+
+---
+
+## 4. Gameplay Entities (The "GMod/GTA" Juice)
+
+### 4.1. Vehicles
+- **Physics:**
+  - **Base:** `AWheeledVehiclePawn` (Chaos Vehicle Plugin).
+  - **Customization:** XML overrides for `UChaosWheeledVehicleMovementComponent` parameters (TorqueCurve, SteeringCurve, SuspensionForce).
+- **Parts System (`UVehiclePartComponent`):**
+  - **Mesh Swapping:** Runtime mesh replacement for hoods, spoilers, bumpers.
+  - **Damage:** Morph targets for dents; detachable bones for loose parts.
+- **Interaction:**
+  - **Sockets:** `Seat_Driver`, `Seat_Passenger`. IK Solvers to snap hands to steering wheel/door handles.
+
+### 4.2. Pedestrians & Player
+- **Unified Character Class (`ABaseCharacter`):**
+  - **Components:** `UHealthComponent`, `UInventoryComponent`, `UInteractionComponent`.
+  - **State Machine:** `ECharacterState` (Idle, Walking, Sprinting, Jumping, Ragdoll, Driving).
+- **Animation System:**
+  - **Layered Blend per Bone:** Upper body (Aiming/Reloading) independent of Lower body (Running).
+  - **Procedural:** Foot IK, LookAt IK (head tracking), Sway.
+- **Ragdoll:** 
+  - **Active Ragdoll:** Physical animation profile blending physics with animation to create "stumble" effects before full collapse.
+
+### 4.3. Weapons
+- **Definitions (XML):**
+  - Properties: `FireRate`, `SpreadMin/Max`, `RecoilPattern` (Vector curve), `AmmoCapacity`.
+  - Assets: `MeshPath`, `FireSoundPath`, `ReloadSoundPath`, `MuzzleFlashNiagaraPath`.
+- **Ballistics:**
+  - **Hitscan:** Instant trace for small arms.
+  - **Projectile:** Physical actor for rockets/grenades/arrows (gravity, drag, bounce).
+- **Attachment System:**
+  - **Slots:** Barrel, Scope, Grip, Mag. Modifies base weapon stats (e.g., Silencer reduces `SoundRadius` but decreases `EffectiveRange`).
+
+---
+
+## 5. AI & Navigation
+*Goal: A living, breathing world.*
+
+### 5.1. Traffic System
+- **Graph Network:**
+  - **Nodes:** Waypoints with connections. Attributes: `SpeedLimit`, `WaitTime`, `HasTrafficLight`.
+  - **Splines:** Visual representation of lanes.
+- **Simulation:**
+  - **LOD:** High fidelity physics for cars near player; simple transform interpolation for distant cars.
+  - **Intersection Logic:** Reservation system to prevent gridlock.
+
+### 5.2. Pedestrian AI
+- **Behavior Tree & Blackboard:**
+  - **States:** `Wander`, `Flee`, `Conversing`, `UsingProp`.
+- **Utility AI (EQS):**
+  - **Context:** "It is raining" -> Score nearby "Shelter" points higher.
+  - **Context:** "Heard gunshot" -> Score "Cover" points away from sound source higher.
+- **Navigation:** `NavMeshInvokers` on the player to generate navmesh only where needed (for infinite worlds), or static NavMesh for fixed levels.
+
+---
+
+## 6. User Interface (Slate/UMG)
+*Goal: Clean, functional, and fully controllable.*
+
+### 6.1. HUD & Menus
+- **Slate (C++):**
+  - **Performance:** Direct Slate drawing for HUD elements (Crosshair, Ammo counter) to avoid UMG overhead.
+  - **Style:** Global `FCoreStyle` singleton defining fonts, colors, and brushes.
+- **Radial Menus:**
+  - **Math:** Vector math to detect mouse angle for selection. Time dilation (slow-mo) when open.
+
+### 6.2. In-Game Editor UI
+- **Gizmos:**
+  - **Implementation:** Custom `UPrimitiveComponent` rendering lines/cones for X/Y/Z axes.
+  - **Input:** Raycast from mouse cursor to detect gizmo axis selection.
+- **Asset Browser:**
+  - **Virtual List:** Tile view handling thousands of items by only rendering visible rows.
+
+---
+
+## 7. Data & Modding (XML Structure)
+*Goal: Edit the game without compiling.*
+
+- **World Files (`.map.xml`):**
+  ```xml
+  <World name="Downtown" timeOfDayStart="12.0">
+      <Entities>
+          <Prop id="trashcan_01" model="Props/Street/trashcan.fbx">
+              <Transform pos="100,0,0" rot="0,0,0" scale="1,1,1" />
+              <Physics mass="10" simulation="true" />
+          </Prop>
+          <Light type="Point" color="#FFC864" radius="500" intensity="8000">
+              <Function type="Flicker" speed="0.5" min="0.8" max="1.2" />
+          </Light>
+      </Entities>
+      <Zones>
+          <Zone type="Reverb" preset="Alleyway">
+              <Box center="500,500,100" extent="200,100,100" />
+          </Zone>
+      </Zones>
+  </World>
+  ```
+- **Item Definitions (`.item.xml`):**
+  ```xml
+  <Weapon id="AK47" category="Rifle">
+      <Visuals mesh="Weapons/AK47.fbx" socket="RightHand" />
+      <Stats damage="30" fireRate="600" range="5000" />
+      <Audio fire="Audio/Weapons/AK_Shot.wav" reload="Audio/Weapons/AK_Reload.wav" />
+      <Recoil kick="1.5" recovery="5.0">
+          <Pattern x="0.1" y="0.5" />
+      </Recoil>
+  </Weapon>
+  ```
+
+---
+
+## 8. Networking (Multiplayer)
+*Goal: Seamless synchronization.*
+
+- **Replication:**
+  - **Movement:** `INetworkPredictionInterface` for vehicles to smooth out latency jitters.
+  - **Replication Graph:** Grid-based culling to only replicate relevant actors to clients (e.g., don't send data about a pedestrian 1km away).
+- **State Sync:**
+  - **World Time:** Server sends authoritative `ServerTime` periodically; client interpolates `ClientTime` to match.
+  - **Props:** Replicate generic `PropID` + `Transform` rather than heavy actor classes.
+
+---
+
+## 9. Next Steps (Implementation Priority)
+
+### Phase 1: Foundation (Current Focus)
+1.  **GameInstance & Managers:**
+    - [x] `CoreGameInstance` setup.
+    - [x] `VFSManager` basic implementation.
+    - [ ] `DataManager` XML parsing implementation.
+    - [ ] `PoolManager` actor spawning logic.
+2.  **World Environment:**
+    - [ ] Implement `WorldCycleManager` (Sun movement, SkyAtmosphere binding).
+    - [ ] Create basic `DefaultTimeOfDay` curve.
+
+### Phase 2: The Character
+1.  **Locomotion:**
+    - [ ] Setup `InputMappingContext` (IMC).
+    - [ ] Implement `MoveForward`, `MoveRight`, `Look`, `Jump`.
+    - [ ] Create Animation Blueprint (StateMachine: Idle/Walk/Run/Jump).
+2.  **Camera:**
+    - [ ] Implement SpringArm + Camera component.
+    - [ ] Add zoom/FOV control.
+
+### Phase 3: The Sandbox (MVP)
+1.  **Spawning:**
+    - [ ] Console command `spawn_entity <prop_id>` to test VFS loading.
+    - [ ] Basic physics interaction (picking up objects).

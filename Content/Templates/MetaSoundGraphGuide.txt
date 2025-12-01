@@ -1,0 +1,244 @@
+# MetaSound Source Templates Creation Guide
+
+## Overview
+This document explains how to create the 4 required MetaSound Source templates in Unreal Editor with proper node connections and parameter configurations.
+
+---
+
+## MSS_SFX (3D Sound Effects)
+
+### Purpose
+For 3D sound effects with spatialization, distance attenuation, and audio effects.
+
+### Creating in Unreal Editor
+1. Right-click in Content Browser → Audio → MetaSound
+2. Name: `MSS_SFX`
+3. Double-click to open in MetaSound Editor
+
+### Main Graph Nodes and Connections
+
+#### Required Input Nodes (Right-click → Create Input)
+1. **SoundWaveAsset** (Type: SoundWave, Default: None)
+   - Name: "SoundWaveAsset"
+   - Expose to Blueprint: ✓
+
+2. **Volume** (Type: Float, Default: 1.0)
+   - Name: "Volume"
+   - Expose to Blueprint: ✓
+
+3. **Pitch** (Type: Float, Default: 1.0)
+   - Name: "Pitch"
+   - Expose to Blueprint: ✓
+
+4. **LowPassFreq** (Type: Float, Default: 0.0)
+   - Name: "LowPassFreq"
+   - Expose to Blueprint: ✓
+
+5. **HighPassFreq** (Type: Float, Default: 0.0)
+   - Name: "HighPassFreq"
+   - Expose to Blueprint: ✓
+
+6. **ReverbSend** (Type: Float, Default: 0.0)
+   - Name: "ReverbSend"
+   - Expose to Blueprint: ✓
+
+7. **DistanceAttenuation** (Type: Float, Default: 1.0)
+   - Name: "DistanceAttenuation"
+   - Expose to Blueprint: ✓
+
+#### Main Processing Chain
+1. **SoundWaveAsset** → **Play** node (from context menu: Create Node → Play)
+2. **Play** output → **Set Volume** node (Create Node → Set Volume)
+3. **Volume** input → **Set Volume** input
+4. **Set Volume** output → **Set Pitch** node
+5. **Pitch** input → **Set Pitch** input
+6. **Set Pitch** output → **Output** (Drag output pin and create output node)
+
+#### Additional Effects Nodes
+1. **LowPassFreq** input → **Set Low Pass Filter Frequency** node
+2. **HighPassFreq** input → **Set High Pass Filter Frequency** node
+3. **ReverbSend** input → **Set Reverb Send Value** node
+
+#### Spatialization Setup
+1. Select the main **Play** node
+2. In Details panel, enable:
+   - **Enable Spatialization**: ✓
+   - **Enable Attenuation**: ✓
+   - **Enable Occlusion**: ✓
+   - **Enable Reverb**: ✓
+3. Set appropriate default attenuation settings for SFX
+
+---
+
+## MSS_Audio2D (2D Music and Ambient Audio)
+
+### Purpose
+For 2D music and ambient sounds that don't require spatialization.
+
+### Creating in Unreal Editor
+1. Right-click in Content Browser → Audio → MetaSound
+2. Name: `MSS_Audio2D`
+3. Double-click to open in MetaSound Editor
+
+### Main Graph Nodes and Connections
+
+#### Required Input Nodes (Right-click → Create Input)
+1. **SoundWaveAsset** (Type: SoundWave, Default: None)
+   - Name: "SoundWaveAsset"
+   - Expose to Blueprint: ✓
+
+2. **Volume** (Type: Float, Default: 1.0)
+   - Name: "Volume"
+   - Expose to Blueprint: ✓
+
+3. **Pitch** (Type: Float, Default: 1.0)
+   - Name: "Pitch"
+   - Expose to Blueprint: ✓
+
+4. **ReverbSend** (Type: Float, Default: 0.0)
+   - Name: "ReverbSend"
+   - Expose to Blueprint: ✓
+
+#### Main Processing Chain
+1. **SoundWaveAsset** → **Play** node
+2. **Play** output → **Set Volume** node
+3. **Volume** input → **Set Volume** input
+4. **Set Volume** output → **Set Pitch** node
+5. **Pitch** input → **Set Pitch** input
+6. **Set Pitch** output → **Output**
+
+#### Additional Effects Nodes
+1. **ReverbSend** input → **Set Reverb Send Value** node
+
+#### Spatialization Setup
+1. Select the main **Play** node
+2. In Details panel, disable:
+   - **Enable Spatialization**: ✗ (disabled)
+   - **Enable Attenuation**: ✗ (disabled)
+   - **Enable Occlusion**: ✗ (disabled)
+3. Enable:
+   - **Enable Reverb**: ✓ (if needed)
+
+---
+
+## MSS_Audio (3D Music with Attenuation)
+
+### Purpose
+For 3D music with spatialization but more subtle than SFX.
+
+### Creating in Unreal Editor
+1. Right-click in Content Browser → Audio → MetaSound
+2. Name: `MSS_Audio`
+3. Double-click to open in MetaSound Editor
+
+### Main Graph Nodes and Connections
+
+#### Required Input Nodes (Right-click → Create Input)
+1. **SoundWaveAsset** (Type: SoundWave, Default: None)
+   - Name: "SoundWaveAsset"
+   - Expose to Blueprint: ✓
+
+2. **Volume** (Type: Float, Default: 1.0)
+   - Name: "Volume"
+   - Expose to Blueprint: ✓
+
+3. **Pitch** (Type: Float, Default: 1.0)
+   - Name: "Pitch"
+   - Expose to Blueprint: ✓
+
+4. **DistanceAttenuation** (Type: Float, Default: 1.0)
+   - Name: "DistanceAttenuation"
+   - Expose to Blueprint: ✓
+
+5. **ReverbSend** (Type: Float, Default: 0.0)
+   - Name: "ReverbSend"
+   - Expose to Blueprint: ✓
+
+#### Main Processing Chain
+1. **SoundWaveAsset** → **Play** node
+2. **Play** output → **Set Volume** node
+3. **Volume** input → **Set Volume** input
+4. **Set Volume** output → **Set Pitch** node
+5. **Pitch** input → **Set Pitch** input
+6. **Set Pitch** output → **Output**
+
+#### Additional Effects Nodes
+1. **DistanceAttenuation** input → Use for custom attenuation logic if needed
+2. **ReverbSend** input → **Set Reverb Send Value** node
+
+#### Spatialization Setup
+1. Select the main **Play** node
+2. In Details panel, enable:
+   - **Enable Spatialization**: ✓
+   - **Enable Attenuation**: ✓ (with music-appropriate settings)
+   - **Enable Reverb**: ✓
+3. Set more subtle attenuation curves than SFX
+
+---
+
+## MSS_UI (UI Sound Effects)
+
+### Purpose
+For UI sounds that should not be spatialized and always play clearly.
+
+### Creating in Unreal Editor
+1. Right-click in Content Browser → Audio → MetaSound
+2. Name: `MSS_UI`
+3. Double-click to open in MetaSound Editor
+
+### Main Graph Nodes and Connections
+
+#### Required Input Nodes (Right-click → Create Input)
+1. **SoundWaveAsset** (Type: SoundWave, Default: None)
+   - Name: "SoundWaveAsset"
+   - Expose to Blueprint: ✓
+
+2. **Volume** (Type: Float, Default: 1.0)
+   - Name: "Volume"
+   - Expose to Blueprint: ✓
+
+3. **Pitch** (Type: Float, Default: 1.0)
+   - Name: "Pitch"
+   - Expose to Blueprint: ✓
+
+#### Main Processing Chain
+1. **SoundWaveAsset** → **Play** node
+2. **Play** output → **Set Volume** node
+3. **Volume** input → **Set Volume** input
+4. **Set Volume** output → **Set Pitch** node
+5. **Pitch** input → **Set Pitch** input
+6. **Set Pitch** output → **Output**
+
+#### Spatialization Setup
+1. Select the main **Play** node
+2. In Details panel, disable:
+   - **Enable Spatialization**: ✗ (disabled)
+   - **Enable Attenuation**: ✗ (disabled)
+   - **Enable Occlusion**: ✗ (disabled)
+   - **Enable Reverb**: ✗ (disabled)
+3. Enable:
+   - **Play as UI Sound**: ✓ (in the Play node's details)
+
+---
+
+## Final Setup Steps for All Templates
+
+### After Creating Each Template:
+1. In the MetaSound Editor, click the "Compile" button to ensure no errors
+2. Save each template (Ctrl+S)
+3. Right-click on each template in the Content Browser → Assets Actions → Package → Save
+
+### Verification Steps:
+1. Create a new Audio Component in any level
+2. Assign each MetaSound template to the Audio Component
+3. Adjust exposed parameters in the Details panel
+4. Play in editor to verify functionality
+
+### Using in Code with Audio Manager:
+In your game code, reference these templates in your AudioManager settings:
+- MetaSoundTemplateAssets.SFXTemplate = "/Game/Audio/Templates/MSS_SFX.MSS_SFX" 
+- MetaSoundTemplateAssets.Audio2DTemplate = "/Game/Audio/Templates/MSS_Audio2D.MSS_Audio2D"
+- MetaSoundTemplateAssets.AudioTemplate = "/Game/Audio/Templates/MSS_Audio.MSS_Audio"
+- MetaSoundTemplateAssets.UITemplate = "/Game/Audio/Templates/MSS_UI.MSS_UI"
+
+The parameter names used as inputs in the MetaSound graphs (like "Volume", "Pitch", etc.) will be the same names you use when setting parameters through the Audio Manager's SetParameter() and SetParameters() functions.

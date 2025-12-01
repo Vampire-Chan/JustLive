@@ -1,0 +1,108 @@
+# MetaSound Source Templates Setup Guide
+
+This document explains how to create the four required MetaSound Source templates in the Unreal Editor.
+
+## Required MetaSound Sources (MSS)
+
+You need to create 4 MetaSound Source assets in: `Content/Audio/Templates/`
+
+### 1. MSS_SFX (For 3D Sound Effects)
+
+**How to create:**
+1. In Content Browser, right-click → Audio → MetaSound
+2. Name it "MSS_SFX"
+3. Double-click to open in MetaSound Editor
+
+**Required Inputs (Exposed to Blueprint/Scripting):**
+- Sound Wave Asset (SoundWave) - The source audio to play
+- Volume (Float, default: 1.0) - Volume multiplier
+- Pitch (Float, default: 1.0) - Pitch multiplier  
+- LowPassFreq (Float, default: 0.0) - Low pass filter frequency
+- HighPassFreq (Float, default: 0.0) - High pass filter frequency
+- ReverbSend (Float, default: 0.0) - Reverb send level
+- DistanceAttenuation (Float, default: 1.0) - Distance attenuation multiplier
+
+**Configuration:**
+- Enable 3D spatialization
+- Set up distance-based attenuation
+- Connect inputs to appropriate nodes in the graph
+
+### 2. MSS_Audio2D (For 2D Music and Ambient Audio)
+
+**How to create:**
+1. In Content Browser, right-click → Audio → MetaSound  
+2. Name it "MSS_Audio2D"
+3. Double-click to open in MetaSound Editor
+
+**Required Inputs (Exposed to Blueprint/Scripting):**
+- Sound Wave Asset (SoundWave) - The source audio to play
+- Volume (Float, default: 1.0) - Volume multiplier
+- Pitch (Float, default: 1.0) - Pitch multiplier
+- ReverbSend (Float, default: 0.0) - Reverb send level
+
+**Configuration:**
+- Disable 3D spatialization (2D audio)
+- No distance attenuation
+- Simple path from sound source to output
+
+### 3. MSS_Audio (For 3D Music with Attenuation)
+
+**How to create:**
+1. In Content Browser, right-click → Audio → MetaSound
+2. Name it "MSS_Audio" 
+3. Double-click to open in MetaSound Editor
+
+**Required Inputs (Exposed to Blueprint/Scripting):**
+- Sound Wave Asset (SoundWave) - The source audio to play
+- Volume (Float, default: 1.0) - Volume multiplier
+- Pitch (Float, default: 1.0) - Pitch multiplier
+- DistanceAttenuation (Float, default: 1.0) - Distance attenuation multiplier
+- ReverbSend (Float, default: 0.0) - Reverb send level
+
+**Configuration:**
+- Enable 3D spatialization with more subtle settings than SFX
+- Set up distance attenuation appropriate for music
+
+### 4. MSS_UI (For UI Sound Effects)
+
+**How to create:**
+1. In Content Browser, right-click → Audio → MetaSound
+2. Name it "MSS_UI"
+3. Double-click to open in MetaSound Editor
+
+**Required Inputs (Exposed to Blueprint/Scripting):**
+- Sound Wave Asset (SoundWave) - The source audio to play
+- Volume (Float, default: 1.0) - Volume multiplier
+- Pitch (Float, default: 1.0) - Pitch multiplier
+
+**Configuration:**
+- Disable 3D spatialization
+- No distance attenuation
+- Always on top UI layer
+- Highest priority for UI sounds
+
+## How to Expose Parameters to Blueprint/Scripting
+
+1. In the MetaSound Editor, right-click on any input node
+2. Select "Expose to Blueprint/Scripting"
+3. This allows the parameter to be controlled from C++/Blueprint code
+4. Make sure to give descriptive names to the exposed parameters
+
+## Testing Your MetaSound Sources
+
+After creating each template:
+
+1. Right-click in the viewport and create "Audio Component" in a level
+2. Assign your MetaSound source to the Audio Component
+3. Use the Details panel to adjust the exposed parameters
+4. Play in editor to verify functionality
+
+## Using in the Audio Manager
+
+In your game code, reference these templates as SoftObjectPtr's in the AudioManager:
+- MetaSoundTemplateAssets.SFXTemplate = "/Game/Audio/Templates/MSS_SFX.MSS_SFX"
+- MetaSoundTemplateAssets.Audio2DTemplate = "/Game/Audio/Templates/MSS_Audio2D.MSS_Audio2D" 
+- MetaSoundTemplateAssets.AudioTemplate = "/Game/Audio/Templates/MSS_Audio.MSS_Audio"
+- MetaSoundTemplateAssets.UITemplate = "/Game/Audio/Templates/MSS_UI.MSS_UI"
+
+The Audio Manager will automatically use the correct template based on the audio category when using the convenience functions like PlaySFX(), PlayUI(), etc.
