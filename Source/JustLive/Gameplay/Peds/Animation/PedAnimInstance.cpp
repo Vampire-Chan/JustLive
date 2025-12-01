@@ -1,7 +1,8 @@
 #include "PedAnimInstance.h"
 #include "../Ped.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/KismetMathLibrary.h"
+// #include "Kismet/KismetAnimationLibrary.h" // Corrected include -- REMOVED
+#include "Kismet/KismetMathLibrary.h" // Keeping original include.
 
 UPedAnimInstance::UPedAnimInstance()
 {
@@ -76,7 +77,7 @@ void UPedAnimInstance::NativeUpdateAnimation(float DeltaTime)
 
 	// 3. Direction (Locomotion Angle)
 	FRotator Rotation = PedOwner->GetActorRotation();
-	Direction = CalculateDirection(Velocity, Rotation);
+	Direction = CalculateDirection(Velocity, Rotation); // Reverted to original
 
 	// 4. Air
 	bIsInAir = MovementComp->IsFalling();

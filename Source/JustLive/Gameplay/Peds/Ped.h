@@ -19,19 +19,19 @@ struct FCharacterData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	FString Id;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	FString Name;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	FLinearColor SkinColor = FLinearColor::White;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	float Health = 100.0f;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	float Armor = 0.0f;
 };
 
@@ -112,10 +112,10 @@ public:
 	// Relationship Group (e.g., "Police", "Ballas")
 
 	// Relationship Group (e.g., "Police", "Ballas")
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character")
 	FName GroupID;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Stats")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats")
 	EAgeGroup AgeGroup = EAgeGroup::Adult;
 
 	// Current Squad

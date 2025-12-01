@@ -65,7 +65,7 @@ void APlayerPed::BeginPlay()
 	SpawnDefaultWeapon();
 }
 
-void APlayerPed::SpawnDefaultWeapon()
+	void APlayerPed::SpawnDefaultWeapon()
 {
 	if (InventoryComp)
 	{
@@ -96,26 +96,14 @@ void APlayerPed::SpawnDefaultWeapon()
 
 		DefaultWeapon.AnimReload = nullptr;
 
-		// Load Assets
-		// USER REQUEST: Use new Skeletal Mesh Gun
-		DefaultWeapon.WeaponSkeletalMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/Gun.Gun"));
-		
-		// Fallback to Pillar if Skeletal Mesh fails (though user said it exists)
-		if (!DefaultWeapon.WeaponSkeletalMesh)
-		{
-			DefaultWeapon.WeaponMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/StarterContent/Architecture/Pillar_50x500.Pillar_50x500"));
-		}
-		else
-		{
-			DefaultWeapon.WeaponMesh = nullptr; // Ensure Static Mesh is null if using Skeletal
-		}
-		
+		// No hardcoded asset loading here. DefaultWeapon.WeaponSkeletalMesh and WeaponMesh will be null
+		// They should be loaded via data tables or the custom VFS system.
+
 		// Add and Equip
 		InventoryComp->AddWeapon(DefaultWeapon, 120);
 		InventoryComp->EquipWeaponSlot(EWeaponSlot::Primary);
 	}
 }
-
 void APlayerPed::AddInputMapping(UInputMappingContext* Context, int32 Priority)
 {
 	if (!Context) return;

@@ -7,6 +7,7 @@
 #include "Components/AttributesComponent.h"
 #include "Components/AnimationComponent.h"
 #include "Animation/Core/AnimationManager.h"
+#include "Animation/PedAnimInstance.h" // Added
 #include "Components/SpeechComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -54,7 +55,6 @@ APed::APed()
 	DebugTextComp->SetVisibility(false); // Added
 
 	// --- Visuals (Skeletal Mesh for Animation) ---
-	// We are switching back to Skeletal Mesh to support ABP
 	// CENTER-ROOT SKELETON: No offset needed (0,0,0)
 	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 	GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
@@ -63,52 +63,27 @@ APed::APed()
 	GetMesh()->SetVisibility(false);
 	GetCapsuleComponent()->SetHiddenInGame(false);
 
-	// 1. Load Default Mesh (Manny)
-	// Try UE5 Manny first, then UE4 Mannequin
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny.SKM_Manny"));
-	if (MeshAsset.Succeeded())
-	{
-		GetMesh()->SetSkeletalMesh(MeshAsset.Object);
-	}
-	else
-	{
-		// Fallback to UE4 Mannequin if Manny missing
-		static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAssetOld(TEXT("/Game/Mannequin/Character/Mesh/SK_Mannequin.SK_Mannequin"));
-		if (MeshAssetOld.Succeeded())
-		{
-			GetMesh()->SetSkeletalMesh(MeshAssetOld.Object);
-		}
-	}
+	// Explicitly ensure no skeletal mesh is set by default from C++ to force data-driven approach
+	GetMesh()->SetSkeletalMesh(nullptr);
+	// Set our custom C++ AnimInstance class by default
+	GetMesh()->SetAnimInstanceClass(UPedAnimInstance::StaticClass());
 
-	// 2. Load Animation Blueprint
-	static ConstructorHelpers::FClassFinder<UAnimInstance> AnimBPClass(TEXT("/Game/ABP_Ped"));
-	if (AnimBPClass.Succeeded())
-	{
-		GetMesh()->SetAnimInstanceClass(AnimBPClass.Class);
-	}
-
-	// 3. Load Material
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MatAsset(TEXT("/Game/Materials/M_Ped.M_Ped"));
-	if (MatAsset.Succeeded())
-	{
-		// Apply to all slots
-		for (int32 i = 0; i < 2; i++) 
-		{
-			GetMesh()->SetMaterial(i, MatAsset.Object);
-		}
-	}
+	// Dynamic Material will be created in BeginPlay or via SetSkin if a base material exists on the mesh
 }
 
 void APed::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	// Create Dynamic Material for Skeletal Mesh
-	if (GetMesh())
+	// Create Dynamic Material for Skeletal Mesh if a base material is present
+	if (GetMesh() && GetMesh()->GetNumMaterials() > 0)
 	{
 		DynamicMaterial = GetMesh()->CreateAndSetMaterialInstanceDynamic(0);
-		// Also set for second slot if exists (Manny has 2 slots)
-		GetMesh()->CreateAndSetMaterialInstanceDynamic(1);
+		// Also set for other slots dynamically
+		for (int32 i = 1; i < GetMesh()->GetNumMaterials(); ++i)
+		{
+			GetMesh()->CreateAndSetMaterialInstanceDynamic(i);
+		}
 	}
 }
 
@@ -143,13 +118,8 @@ void APed::Tick(float DeltaTime)
 
 void APed::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	// Bind Actions
-	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &APed::StartAim);
-	PlayerInputComponent->BindAction("Aim", IE_Released, this, &APed::StopAim);
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APed::StartFire);
-	PlayerInputComponent->BindAction("Fire", IE_Released, this, &APed::StopFire);
+	// Input for APed (if needed for AI debugging, etc.)
+	// Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
 void APed::StartAim()
